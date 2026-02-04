@@ -34,8 +34,16 @@ function waitForServiceReady(retry = 0) {
 async function connectPad() {
   console.log("1) Checking SigCaptX service...");
 
+  if (m_tablet) {
+    try {
+      await m_tablet.disconnect();
+    } catch (_) {}
+    m_tablet = null;
+  }
+
   try {
     // 1) Wait for SigCaptX Web Service (websocket bridge)
+    await new Promise((r) => setTimeout(r, 1000));
     await waitForServiceReady();
     console.log("2) SigCaptX service: ready");
 
@@ -102,8 +110,31 @@ async function connectPad() {
   }
 }
 
+async function cleanupTablet() {
+  try {
+    if (m_tablet) {
+      await m_tablet.disconnect();
+      m_tablet = null;
+      console.log("Tablet disconnected");
+    }
+  } catch (e) {
+    console.warn("Tablet disconnect failed:", e);
+  }
+
+  try {
+    WacomGSS.STU.close();
+  } catch (_) {}
+}
+
 // Good practice: close SigCaptX bridge on tab close (demo does this)
 window.addEventListener("beforeunload", () => {
+  try {
+    if (m_tablet) {
+      m_tablet.disconnect();
+      m_tablet = null;
+    }
+  } catch (_) {}
+
   try {
     WacomGSS.STU.close();
   } catch (_) {}
